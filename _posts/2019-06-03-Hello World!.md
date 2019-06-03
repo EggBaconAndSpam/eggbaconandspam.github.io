@@ -1,6 +1,7 @@
 ---
 layout: post
 title:  "Hello world!"
+date: 2019-06-03 14:00:00
 ---
 
 Hello world! I set up this blog to write about the progress of my *Google Summer of Code* project ["A language server for Dhall"](https://summerofcode.withgoogle.com/projects/#5991057626497024).
