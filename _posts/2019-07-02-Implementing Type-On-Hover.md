@@ -6,7 +6,7 @@ date: 2019-07-02
 
 [Dhall]() is an implementation of a _typed lambda calculus_ (i.e. a _functional programming language_; like Haskell, but with substantially different design decisions). Arguably the most useful features one would expect from "editor integration" for a typed language like Dhall is "type-on-hover", that is, when I point the cursor at an _identifier_ (a variable name) I would like a tooltip displaying its type to appear. Like so:
 
-![Image]()
+![Image](../images/hover-type-intro.png)
 
 In this article I will talk you through me implementation of "type-on-hover" as part of [dhall-lsp-server](), which together with [vscode-dhall-lsp-server]() provides editor integration for Dhall files in VSCode/[ium](). While Dhall is a specific instance of a typed functional programming language, its relative lack of idiosyncrasies hopefully means that the following should be helpful to someone looking to implement editor support for a different language.
 
@@ -31,8 +31,8 @@ Dhall's AST type `data Expr s a` is defined in [Dhall.Core, lines 10-200](). Hav
 
 - __Variables&nbsp;__ We wanted to display the types of variables, remember? It turns out to be more convenient to implement "type-on-hover" in such a way that it displays the type of the _smallest subtree_ of the AST containing the cursor position instead, but, if we wanted to, we could restrict this to only consider variables (and not display anything if the position did not point at a `Var` node).
 
-- __Everything else&nbsp;__ When dealing with any of the remaining constructors we only need to differentiate two cases:
-  1. The position lies in one of the subexpressions of the current node of the AST; in this case we recursively look at that subexpression. Through the use of [lenses]() (this is getting exciting, isn't it?) we are able to handle this generically.
+- __Everything else&nbsp;__ When dealing with any of the remaining constructors we only need to consider two cases:
+  1. The position lies in one of the subexpressions of the current node of the AST; in this case we recursively look at that subexpression. Through the use of [lenses]() (this is getting exciting, isn't it?) we are able to handle this case generically.
   2. The position does not lie in any of the subexpressions (or we reached a leaf node without any subexpressions); in this case we simply return the type of the current node to the user.
 
 ## The implementation (a few lines of Haskell)
@@ -40,7 +40,7 @@ The heart of this feature is implemented in [Dhall.LSP.Backend.Typing]() in the 
 ```
 typeAt' :: Position -> Context (Expr Src X) -> Expr Src X -> Either (TypeError Src X) (Expr Src X)
 ````
-This function expects a _position_ (a line-column-tuple), a _typechecking context_ representing the binders we passed so far and the current _expression_ (a subexpression of a well-typed `Expr Src X`). The expression is assumed to be free of "multi-lets", i.e. subexpressions corresponding to `let ... let ... let ... in ...`; these are split into nested lets binding a single variable each in a preprocessing step in `typeAt`. The result of `typeAt'` is either a type error (this should never happen since the input should be well-typed), or the type of the smallest subexpression containing the given position.
+This function expects a _position_ (a line-column-tuple), a _typechecking context_ representing the binders we passed so far and the current _expression_ (a subexpression of a well-typed `Expr Src X`). The expression is assumed to be free of "multi-lets", i.e. subexpressions of the form `let ... let ... in ...` (these are split into nested lets binding a single variable each in a preprocessing step in `typeAt`). The result of `typeAt'` is either a type error (this should never happen since the input should be well-typed), or the type of the smallest subexpression containing the given position.
 
 Let us look at each of the clauses that make up the definition of `typeAt'` in turn.
 
@@ -49,7 +49,7 @@ Let us look at each of the clauses that make up the definition of `typeAt'` in t
   let a = 0 in a
                ~
   ```
-  In this case, before we can recurse, we need to keep track of the bound variable. In the cases of `Lam` and `Pi` this merely means adding its type to the context, but since Dhall allows "type aliases" like
+  In this case, before we can recurse, we need to keep track of the bound variable. Since Dhall allows for "type aliases" like
   ```
   let MaybeNatural = < Nothing : {} | Just : Natural >
   in  MaybeNatural.Just 2 : MaybeNatural
@@ -100,23 +100,22 @@ Let us look at each of the clauses that make up the definition of `typeAt'` in t
   typeAt' pos ctx expr = do
   let subExprs = toListOf subExpressions expr
   case [ (src, e) | (Note src e) <- subExprs, pos `inside` src ] of
-    [] -> typeWithA absurd ctx expr
+    [] -> do type <- typeWithA absurd ctx expr
+             return (normalize typ)
     ((src, e):_) -> typeAt' pos ctx (Note src e)
   ```
-  To digest this one, first a reminder: if `expr` was produced by [Dhall.Parse]() we know that every subexpression is wrapped in a `Note` constructor telling us which part of the source code it came from (assuming `expr` isn't itself a `Note`).
-
-  [Dhall.Core]() defines the "traversal"
+  `subExprs = toListOf subExpressions expr` gives us the list of all immediate subexpressions of `expr`. This makes use of the lense combinator `toListOf`; `subExpressions` is a "traversal" defined in [Dhall.Core]() with the following type:
   ```
   subExpressions :: Applicative f => (Expr s a -> f (Expr s a)) -> Expr s a -> f (Expr s a)
   ```
-  which together with the `toListOf` combinator from [Control.Lens](http://hackage.haskell.org/package/lens-4.17.1/docs/Control-Lens-Combinators.html#v:toListOf) gives us the list of all immediate subexpressions `toListOf subExpressions expr` of `expr`. If you find the type of `subExpressions` (and in fact of any of combinators in `Control.Lens`) utterly unenlightening&mdash;you are not alone.
+  If you find the type of `subExpressions` (and in fact of any of combinators in `Control.Lens`) utterly unenlightening&mdash;you are not alone.
 
-  Finally, we consider two cases:
-  - If one of the immediate subexpressions of `expr` contains the position we recurse.
-  - Otherwise we return the type of `expr`.
+  To digest the rest, first a reminder: if `expr` was produced by [Dhall.Parse]() we know that every subexpression is wrapped in a `Note` constructor telling us which part of the source code it came from. This means that the case expression considers the following two cases:
+  - Either `pos` is not contained in any of the subexpressions of `expr`; return the type of `expr`.
+  - Otherwise recurse with the corresponding subexpression.
 
 The last clause causes the following behaviour:
 
-![Image]()
+![Image](../images/type-hover-lambda.png)
 
 Rather neat, eh?
