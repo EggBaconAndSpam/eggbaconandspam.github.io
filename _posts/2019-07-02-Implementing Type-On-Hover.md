@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "(Draft) Implementing the Type-on-Hover feature"
+title:  "Implementing the Type-on-Hover feature"
 date: 2019-07-02
 ---
 
