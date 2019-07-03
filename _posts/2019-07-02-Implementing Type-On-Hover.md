@@ -119,3 +119,8 @@ The last clause causes the following behaviour:
 ![Image](/images/type-hover-lambda.png)
 
 Rather neat, eh?
+
+## Conclusion
+Basically, we ended up re-implementing the behaviour of Dhall`s [typechecker]() in the "interesting cases". The structurally simpler cases are all handled neatly using the `toListOf` lens combinator (whose behaviour is indistinguishable from magic).
+
+I did not talk about the "frontend" at all, which is the plumbing needed to react to LSP [Hover Requests](https://microsoft.github.io/language-server-protocol/specification#textDocument_hover) and produce the corresponding "hover result". In the current version this amounts to all of [15 lines of "plumbing code".](https://github.com/dhall-lang/dhall-haskell/blob/3a120d277f62fe83f8d9b35f14e3c93b9a6076cf/dhall-lsp-server/src/Dhall/LSP/Handlers.hs#L160-L175)
