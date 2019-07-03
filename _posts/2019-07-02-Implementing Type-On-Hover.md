@@ -45,15 +45,13 @@ This function expects a _position_ (a line-column-tuple), a _typechecking contex
 Let us look at each of the clauses that make up the definition of `typeAt'` in turn.
 
 - The [first clause](https://github.com/dhall-lang/dhall-haskell/blob/8995efe69233d36fccea4f14df28a2b073e9390b/dhall-lsp-server/src/Dhall/LSP/Backend/Typing.hs#L34-L44) concerns the case where the cursor points inside the body of a let expression. For example:
-  ```
-  let a = 0 in a
-               ~
-  ```
+
+  ![](/images/type-hover-example-let.png)
+
   In this case, before we can recurse, we need to keep track of the bound variable. Since Dhall allows for "type aliases" like
-  ```
-  let MaybeNatural = < Nothing : {} | Just : Natural >
-  in  MaybeNatural.Just 2 : MaybeNatural
-  ```
+
+  ![](/images/type-hover-example-typesynonym.png)
+
   we need to handle the case where the bound term is a type separately. Don't look at the details too closely&mdash;they are quite specific to Dhall's semantics.
   ```
   -- Dhall.LSP.Backend.Typing ll. 35-46
@@ -71,10 +69,9 @@ Let us look at each of the clauses that make up the definition of `typeAt'` in t
   ```
 
 - The [second clause](https://github.com/dhall-lang/dhall-haskell/blob/8995efe69233d36fccea4f14df28a2b073e9390b/dhall-lsp-server/src/Dhall/LSP/Backend/Typing.hs#L46-L49) concerns the case where the cursors points inside the body of a lambda-abstraction, e.g.:
-  ```
-  \(n : Natural) -> n
-                    ~
-  ```
+
+  ![](/images/type-hover-example-lambda.png)
+
   In this case we merely add the type of the bound variable to the typechecking context and recurse.
   ```
   -- Dhall.LSP.Backend.Typing ll. ??
@@ -85,10 +82,8 @@ Let us look at each of the clauses that make up the definition of `typeAt'` in t
   ```
 
 - The [third clause](https://github.com/dhall-lang/dhall-haskell/blob/8995efe69233d36fccea4f14df28a2b073e9390b/dhall-lsp-server/src/Dhall/LSP/Backend/Typing.hs#L51-L54) mirrors the second one for "forall" binders, e.g.:
-  ```
-  forall (T : Type) -> T
-                       ~
-  ```
+
+  ![](/images/type-hover-example-forall.png)
 
 - The [next clause](https://github.com/dhall-lang/dhall-haskell/blob/8995efe69233d36fccea4f14df28a2b073e9390b/dhall-lsp-server/src/Dhall/LSP/Backend/Typing.hs#L57) is particular to this implementation: it peels off an outer `Note` constructor. This is to make sure that the generic last clause is only ever applied to expressions that start with a "meaningful" constructor (i.e., not a `Note`).
   ```
@@ -114,11 +109,11 @@ Let us look at each of the clauses that make up the definition of `typeAt'` in t
   - Either `pos` is not contained in any of the subexpressions of `expr`. In this case we return the type of the entire expression `expr`.
   - Otherwise we recurse with the corresponding subexpression.
 
-The last clause causes the following behaviour:
+  This causes the following behaviour:
 
-![Image](/images/type-hover-lambda.png)
+  ![Image](/images/type-hover-lambda.png)
 
-Rather neat, eh?
+  Rather neat, eh?
 
 ## Conclusion
 Basically, we ended up re-implementing the behaviour of Dhall's [typechecker](https://github.com/dhall-lang/dhall-haskell/blob/8995efe69233d36fccea4f14df28a2b073e9390b/dhall/src/Dhall/TypeCheck.hs#L100-L846) in the "interesting cases". The structurally simpler cases are all handled neatly using the `toListOf` lens combinator (whose behaviour is indistinguishable from magic).
