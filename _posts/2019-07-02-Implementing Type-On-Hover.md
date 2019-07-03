@@ -6,7 +6,7 @@ date: 2019-07-02
 
 [Dhall]() is an implementation of a _typed lambda calculus_ (i.e. a _functional programming language_; like Haskell, but with substantially different design decisions). Arguably the most useful features one would expect from "editor integration" for a typed language like Dhall is "type-on-hover", that is, when I point the cursor at an _identifier_ (a variable name) I would like a tooltip displaying its type to appear. Like so:
 
-![Image](../images/hover-type-intro.png)
+![Image](/images/hover-type-intro.png)
 
 In this article I will talk you through me implementation of "type-on-hover" as part of [dhall-lsp-server](), which together with [vscode-dhall-lsp-server]() provides editor integration for Dhall files in VSCode/[ium](). While Dhall is a specific instance of a typed functional programming language, its relative lack of idiosyncrasies hopefully means that the following should be helpful to someone looking to implement editor support for a different language.
 
@@ -116,6 +116,6 @@ Let us look at each of the clauses that make up the definition of `typeAt'` in t
 
 The last clause causes the following behaviour:
 
-![Image](../images/type-hover-lambda.png)
+![Image](/images/type-hover-lambda.png)
 
 Rather neat, eh?
