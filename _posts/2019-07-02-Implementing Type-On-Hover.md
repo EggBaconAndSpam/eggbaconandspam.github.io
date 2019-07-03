@@ -37,7 +37,7 @@ Dhall's AST type `data Expr s a` is defined in [Dhall.Core, lines 348-484](https
 
 ## The implementation (a few lines of Haskell)
 The heart of this feature is implemented in [Dhall.LSP.Backend.Typing](https://github.com/dhall-lang/dhall-haskell/blob/8995efe69233d36fccea4f14df28a2b073e9390b/dhall-lsp-server/src/Dhall/LSP/Backend/Typing.hs#L32-L65) in the function `typeAt'`.
-```
+```haskell
 typeAt' :: Position -> Context (Expr Src X) -> Expr Src X -> Either (TypeError Src X) (Expr Src X)
 ````
 This function expects a _position_ (a line-column-tuple), a _typechecking context_ representing the binders we passed so far and the current _expression_ (a subexpression of a well-typed `Expr Src X`). The expression is assumed to be free of "multi-lets", i.e. subexpressions of the form `let ... let ... in ...` (these are split into nested lets binding a single variable each in a preprocessing step in `typeAt`). The result of `typeAt'` is either a type error (this should never happen since the input should be well-typed), or the type of the smallest subexpression containing the given position.
@@ -53,7 +53,7 @@ Let us look at each of the clauses that make up the definition of `typeAt'` in t
   ![](/images/type-hover-example-typesynonym.png)
 
   we need to handle the case where the bound term is a type separately. Don't look at the details too closely&mdash;they are quite specific to Dhall's semantics.
-  ```
+  ```haskell
   -- Dhall.LSP.Backend.Typing ll. 35-46
   typeAt' pos ctx (Let (Binding x _ a :| []) e@(Note src _)) | pos `inside` src = do
     _A <- typeWithA absurd ctx a
@@ -73,7 +73,7 @@ Let us look at each of the clauses that make up the definition of `typeAt'` in t
   ![](/images/type-hover-example-lambda.png)
 
   In this case we merely add the type of the bound variable to the typechecking context and recurse.
-  ```
+  ```haskell
   -- Dhall.LSP.Backend.Typing ll. ??
   typeAt' pos ctx (Lam x _A b@(Note src _)) | pos `inside` src = do
   let _A' = Dhall.Core.normalize _A
@@ -86,12 +86,12 @@ Let us look at each of the clauses that make up the definition of `typeAt'` in t
   ![](/images/type-hover-example-forall.png)
 
 - The [next clause](https://github.com/dhall-lang/dhall-haskell/blob/8995efe69233d36fccea4f14df28a2b073e9390b/dhall-lsp-server/src/Dhall/LSP/Backend/Typing.hs#L57) is particular to this implementation: it peels off an outer `Note` constructor. This is to make sure that the generic last clause is only ever applied to expressions that start with a "meaningful" constructor (i.e., not a `Note`).
-  ```
+  ```haskell
   typeAt' pos ctx (Note _ expr) = typeAt' pos ctx expr
   ```
 
 - The [last clause](https://github.com/dhall-lang/dhall-haskell/blob/8995efe69233d36fccea4f14df28a2b073e9390b/dhall-lsp-server/src/Dhall/LSP/Backend/Typing.hs#L60-L65) is where the magic happens:
-  ```
+  ```haskell
   typeAt' pos ctx expr = do
   let subExprs = toListOf subExpressions expr
   case [ (src, e) | (Note src e) <- subExprs, pos `inside` src ] of
@@ -100,7 +100,7 @@ Let us look at each of the clauses that make up the definition of `typeAt'` in t
     ((src, e):_) -> typeAt' pos ctx (Note src e)
   ```
   `subExprs = toListOf subExpressions expr` gives us the list of all immediate subexpressions of `expr`. This makes use of the lense combinator [toListOf](http://hackage.haskell.org/package/lens-4.17.1/docs/Control-Lens-Combinators.html#v:toListOf). `subExpressions` is a "traversal" defined in [Dhall.Core]() with the following type:
-  ```
+  ```haskell
   subExpressions :: Applicative f => (Expr s a -> f (Expr s a)) -> Expr s a -> f (Expr s a)
   ```
   If you find the type of `subExpressions` (and in fact of any of the combinators in `Control.Lens`) utterly unenlightening&mdash;you are not alone. What matters it that `toListOf subExpressions expr` does the right thing!
