@@ -121,6 +121,6 @@ The last clause causes the following behaviour:
 Rather neat, eh?
 
 ## Conclusion
-Basically, we ended up re-implementing the behaviour of Dhall's [typechecker]() in the "interesting cases". The structurally simpler cases are all handled neatly using the `toListOf` lens combinator (whose behaviour is indistinguishable from magic).
+Basically, we ended up re-implementing the behaviour of Dhall's [typechecker](https://github.com/dhall-lang/dhall-haskell/blob/8995efe69233d36fccea4f14df28a2b073e9390b/dhall/src/Dhall/TypeCheck.hs#L100-L846) in the "interesting cases". The structurally simpler cases are all handled neatly using the `toListOf` lens combinator (whose behaviour is indistinguishable from magic).
 
-I did not talk about the "frontend" at all, which is the plumbing needed to react to LSP [Hover Requests](https://microsoft.github.io/language-server-protocol/specification#textDocument_hover) and produce the corresponding "hover result". In the current version this amounts to all of [15 lines of "plumbing code".](https://github.com/dhall-lang/dhall-haskell/blob/3a120d277f62fe83f8d9b35f14e3c93b9a6076cf/dhall-lsp-server/src/Dhall/LSP/Handlers.hs#L160-L175)
+Note that I did not talk about the "frontend" at all, i.e. the plumbing needed to react to LSP [Hover Requests](https://microsoft.github.io/language-server-protocol/specification#textDocument_hover) and produce the corresponding "hover result". In the current version this amounts to all of [15 lines of "plumbing code".](https://github.com/dhall-lang/dhall-haskell/blob/3a120d277f62fe83f8d9b35f14e3c93b9a6076cf/dhall-lsp-server/src/Dhall/LSP/Handlers.hs#L160-L175) Feel free to have a look at it yourself (and don't expect it to be too interesting).
