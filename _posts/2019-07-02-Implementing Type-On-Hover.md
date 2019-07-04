@@ -36,13 +36,13 @@ Dhall's AST type `data Expr s a` is defined in [Dhall.Core, lines 348-484](https
   2. The position does not lie in any of the subexpressions (or we reached a leaf node without any subexpressions); in this case we simply return the type of the current node to the user.
 
 ## The implementation (a few lines of Haskell)
-The heart of this feature is implemented in [Dhall.LSP.Backend.Typing](https://github.com/dhall-lang/dhall-haskell/blob/8995efe69233d36fccea4f14df28a2b073e9390b/dhall-lsp-server/src/Dhall/LSP/Backend/Typing.hs#L32-L65) in the function `typeAt'`.
+The heart of this feature is implemented in [Dhall.LSP.Backend.Typing](https://github.com/dhall-lang/dhall-haskell/blob/8995efe69233d36fccea4f14df28a2b073e9390b/dhall-lsp-server/src/Dhall/LSP/Backend/Typing.hs#L32-L65) in the function `typeAt'`. (The link points to the exact version of the file on github.)
 ```haskell
 typeAt' :: Position -> Context (Expr Src X) -> Expr Src X -> Either (TypeError Src X) (Expr Src X)
 ````
-This function expects a _position_ (a line-column-tuple), a _typechecking context_ representing the binders we passed so far and the current _expression_ (a subexpression of a well-typed `Expr Src X`). The expression is assumed to be free of "multi-lets", i.e. subexpressions of the form `let ... let ... in ...` (these are split into nested lets binding a single variable each in a preprocessing step in `typeAt`). The result of `typeAt'` is either a type error (this should never happen since the input should be well-typed), or the type of the smallest subexpression containing the given position.
+This function expects a _position_ (a line-column-tuple), a _typechecking context_ representing the binders we passed so far and the current _expression_ (a subexpression of a well-typed `Expr Src X`). The result of `typeAt'` is either a _type error_ (this should never happen, assuming the input was well-typed), or the type of the _smallest subexpression_ containing the given position.
 
-Let us look at each of the clauses that make up the definition of `typeAt'` in turn.
+Let us look at each of the clauses that make up the definition of `typeAt'` in turn. Note that I renamed some of the variable names from the actual code to be a bit more expressive (the following excerpts are equivalent to the referenced lines in [Dhall.LSP.Backend.Typing](https://github.com/dhall-lang/dhall-haskell/blob/8995efe69233d36fccea4f14df28a2b073e9390b/dhall-lsp-server/src/Dhall/LSP/Backend/Typing.hs#L32-L65)).
 
 - The [first clause](https://github.com/dhall-lang/dhall-haskell/blob/8995efe69233d36fccea4f14df28a2b073e9390b/dhall-lsp-server/src/Dhall/LSP/Backend/Typing.hs#L34-L44) concerns the case where the cursor points inside the body of a let expression. For example:
 
@@ -54,18 +54,25 @@ Let us look at each of the clauses that make up the definition of `typeAt'` in t
 
   we need to handle the case where the bound term is a type separately. Don't look at the details too closely&mdash;they are quite specific to Dhall's semantics.
   ```haskell
-  -- Dhall.LSP.Backend.Typing ll. 35-46
-  typeAt' pos ctx (Let (Binding x _ a :| []) e@(Note src _)) | pos `inside` src = do
-    _A <- typeWithA absurd ctx a
-    t <- fmap normalize (typeWithA absurd ctx _A)
-    case t of
-      Const Type -> do  -- we don't have types depending on values
-        let ctx' = fmap (shift 1 (V x 0)) (insert x (normalize _A) ctx)
-        _B <- typeAt' pos ctx' e
-        return (shift (-1) (V x 0) _B)
-      _ -> do  -- but we do have types depending on types
-        let a' = shift 1 (V x 0) (normalize a)
-        typeAt' pos ctx (shift (-1) (V x 0) (subst (V x 0) a' e))
+  -- Dhall.LSP.Backend.Typing ll. 34-44
+  typeAt' position context (Let (Binding variable _ value :| []) body@(Note src _))
+    | position `inside` src = do
+      typ <- typeWithA absurd ctx value
+
+      kind <- fmap normalize (typeWithA absurd context typ)
+
+      case kind of
+          Const Type -> do  -- we don't have types depending on values
+              let context' = fmap (shift 1 (V x 0)) (insert x (normalize typ) context)
+
+              result <- typeAt' position context' body
+
+              return (shift (-1) (V x 0) result)
+
+          _ -> do  -- but we do have types depending on types
+              let value' = shift 1 (V x 0) (normalize a)
+
+              typeAt' position context (shift (-1) (V x 0) (subst (V x 0) value' body))
   ```
 
 - The [second clause](https://github.com/dhall-lang/dhall-haskell/blob/8995efe69233d36fccea4f14df28a2b073e9390b/dhall-lsp-server/src/Dhall/LSP/Backend/Typing.hs#L46-L49) concerns the case where the cursors points inside the body of a lambda-abstraction, e.g.:
@@ -74,11 +81,14 @@ Let us look at each of the clauses that make up the definition of `typeAt'` in t
 
   In this case we merely add the type of the bound variable to the typechecking context and recurse.
   ```haskell
-  -- Dhall.LSP.Backend.Typing ll. ??
-  typeAt' pos ctx (Lam x _A b@(Note src _)) | pos `inside` src = do
-  let _A' = Dhall.Core.normalize _A
-      ctx' = fmap (shift 1 (V x 0)) (insert x _A' ctx)
-  typeAt' pos ctx' b
+  -- Dhall.LSP.Backend.Typing ll. 46-49
+  typeAt' position context (Lam variable typ body@(Note src _))
+    | position `inside` src = do
+      let typ' = Dhall.Core.normalize typ
+
+      context' = fmap (shift 1 (V x 0)) (insert variable typ' context)
+
+      typeAt' position context' body
   ```
 
 - The [third clause](https://github.com/dhall-lang/dhall-haskell/blob/8995efe69233d36fccea4f14df28a2b073e9390b/dhall-lsp-server/src/Dhall/LSP/Backend/Typing.hs#L51-L54) mirrors the second one for "forall" binders, e.g.:
@@ -87,29 +97,32 @@ Let us look at each of the clauses that make up the definition of `typeAt'` in t
 
 - The [next clause](https://github.com/dhall-lang/dhall-haskell/blob/8995efe69233d36fccea4f14df28a2b073e9390b/dhall-lsp-server/src/Dhall/LSP/Backend/Typing.hs#L57) is particular to this implementation: it peels off an outer `Note` constructor. This is to make sure that the generic last clause is only ever applied to expressions that start with a "meaningful" constructor (i.e., not a `Note`).
   ```haskell
-  typeAt' pos ctx (Note _ expr) = typeAt' pos ctx expr
+  typeAt' position context (Note _ expr) = typeAt' position context expr
   ```
 
-- The [last clause](https://github.com/dhall-lang/dhall-haskell/blob/8995efe69233d36fccea4f14df28a2b073e9390b/dhall-lsp-server/src/Dhall/LSP/Backend/Typing.hs#L60-L65) is where the magic happens:
+- The [last clause](https://github.com/dhall-lang/dhall-haskell/blob/8995efe69233d36fccea4f14df28a2b073e9390b/dhall-lsp-server/src/Dhall/LSP/Backend/Typing.hs#L60-L65) is where the magic happens!
   ```haskell
-  typeAt' pos ctx expr = do
+  typeAt' position context expr = do
   let subExprs = toListOf subExpressions expr
-  case [ (src, e) | (Note src e) <- subExprs, pos `inside` src ] of
-    [] -> do type <- typeWithA absurd ctx expr
+
+  case [ (src, expr') | (Note src expr') <- subExprs, position `inside` src ] of
+    [] -> do type <- typeWithA absurd context expr
+
              return (normalize typ)
-    ((src, e):_) -> typeAt' pos ctx (Note src e)
+
+    ((src, e):_) -> typeAt' position context (Note src expr')
   ```
-  `subExprs = toListOf subExpressions expr` gives us the list of all immediate subexpressions of `expr`. This makes use of the lense combinator [toListOf](http://hackage.haskell.org/package/lens-4.17.1/docs/Control-Lens-Combinators.html#v:toListOf). `subExpressions` is a "traversal" defined in [Dhall.Core]() with the following type:
+  First of all, `subExprs = toListOf subExpressions expr` gives us the list of all immediate subexpressions of `expr`. This makes use of the lense combinator [toListOf](http://hackage.haskell.org/package/lens-4.17.1/docs/Control-Lens-Combinators.html#v:toListOf). Noite that `subExpressions` is a "traversal" defined in [Dhall.Core]() with the following type:
   ```haskell
   subExpressions :: Applicative f => (Expr s a -> f (Expr s a)) -> Expr s a -> f (Expr s a)
   ```
   If you find the type of `subExpressions` (and in fact of any of the combinators in `Control.Lens`) utterly unenlightening&mdash;you are not alone. What matters it that `toListOf subExpressions expr` does the right thing!
 
   To digest the rest, first a reminder: if `expr` was produced by [Dhall.Parse]() we know that every subexpression is wrapped in a `Note` constructor telling us which part of the source code it came from. This means that the case expression considers the following two cases:
-  - Either `pos` is not contained in any of the subexpressions of `expr`. In this case we return the type of the entire expression `expr`.
+  - Either the position is not contained in any of the subexpressions of `expr`. In this case we return the type of the entire expression `expr`.
   - Otherwise we recurse with the corresponding subexpression.
 
-  This causes the following behaviour:
+  This in particular causes the following behaviour:
 
   ![Image](/images/type-hover-lambda.png)
 
@@ -118,4 +131,4 @@ Let us look at each of the clauses that make up the definition of `typeAt'` in t
 ## Conclusion
 Basically, we ended up re-implementing the behaviour of Dhall's [typechecker](https://github.com/dhall-lang/dhall-haskell/blob/8995efe69233d36fccea4f14df28a2b073e9390b/dhall/src/Dhall/TypeCheck.hs#L100-L846) in the "interesting cases". The structurally simpler cases are all handled neatly using the `toListOf` lens combinator (whose behaviour is indistinguishable from magic).
 
-Note that we did not talk about the "frontend" at all, i.e. the plumbing needed to handle LSP [Hover Requests](https://microsoft.github.io/language-server-protocol/specification#textDocument_hover) and produce the corresponding "hover result". Currently this amounts to all of [15 lines of "plumbing code"](https://github.com/dhall-lang/dhall-haskell/blob/3a120d277f62fe83f8d9b35f14e3c93b9a6076cf/dhall-lsp-server/src/Dhall/LSP/Handlers.hs#L160-L175); feel free to have a look at it.
+Note that we did not talk about the "frontend" at all, i.e. the plumbing needed to handle LSP [Hover Requests](https://microsoft.github.io/language-server-protocol/specification#textDocument_hover) and produce the corresponding "hover result". Currently this amounts to all of [15 lines of "plumbing code"](https://github.com/dhall-lang/dhall-haskell/blob/3a120d277f62fe83f8d9b35f14e3c93b9a6076cf/dhall-lsp-server/src/Dhall/LSP/Handlers.hs#L160-L175). Feel free to have a look at it on your own, but don't expect any interesting new insights.
