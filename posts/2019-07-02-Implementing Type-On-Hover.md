@@ -1,4 +1,4 @@
-# Implementing the Type-On-Hover feature"
+# Implementing the Type-On-Hover Feature
 
 [Dhall](https://dhall-lang.org/) is an implementation of a _typed lambda calculus_ (i.e. a _functional programming language_; like Haskell, but with substantially different design decisions). Arguably the most useful features one would expect from "editor integration" for a typed language like Dhall is "type-on-hover", that is, when I point the cursor at an _identifier_ (a variable name) I would like a tooltip displaying its type to appear. Like so:
 
