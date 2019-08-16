@@ -1,7 +1,3 @@
----
-layout: post
-title:  "New feature: Type on Hover"
-date: 2019-06-14
----
+# New feature: Type on Hover"
 
 ![](/images/type-hover.png)
