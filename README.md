@@ -12,4 +12,4 @@
 
 - 2019-07-02 [Implementing the Type-On-Hover Feature](./posts/2019-07-02-Implementing%20Type-On-Hover.md)
 
-- 2019-08-22 [GSoC 2019 Final Report](./posts/2019-08-xx-final-report.md)
+- 2019-08-22 [GSoC 2019 Final Report](./posts/2019-08-22-final-report.md)
