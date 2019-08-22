@@ -17,12 +17,12 @@ These were my main contributions to [*dhall-lsp-server*](https://github.com/dhal
 
 - Better type errors with optional detailed explanations ([gif](../images/explain-on-hover.png); code at [#974](https://github.com/dhall-lang/dhall-haskell/pull/974) and [#982](https://github.com/dhall-lang/dhall-haskell/pull/982); client code at [#4](https://github.com/PanAeon/vscode-dhall-lsp-server/pull/4))
 - Linting ([gif](../images/lint-and-format.png); [#1003](https://github.com/dhall-lang/dhall-haskell/pull/1003); [#7](https://github.com/PanAeon/vscode-dhall-lsp-server/pull/7))
-- Displaying the inferred type when hovering over any part of the code ([gif](./images/type-hover.png); [#1008](https://github.com/dhall-lang/dhall-haskell/pull/1008))
-- Annotating let bindings ([gif](./images/annotate-let.png); [#1014](https://github.com/dhall-lang/dhall-haskell/pull/1014), [#8](https://github.com/PanAeon/vscode-dhall-lsp-server/pull/8))
+- Displaying the inferred type when hovering over any part of the code ([gif](../images/type-hover.png); [#1008](https://github.com/dhall-lang/dhall-haskell/pull/1008))
+- Annotating let bindings ([gif](../images/annotate-let.png); [#1014](https://github.com/dhall-lang/dhall-haskell/pull/1014), [#8](https://github.com/PanAeon/vscode-dhall-lsp-server/pull/8))
 - Caching (performance enhancement) ([#1040](https://github.com/dhall-lang/dhall-haskell/pull/1040))
-- Clickable import statements ([gif](./images/follow-imports.png); [#1121](https://github.com/dhall-lang/dhall-haskell/pull/1121))
-- Freezing imports ([gif](./images/freezing-imports.png); [#1123](https://github.com/dhall-lang/dhall-haskell/pull/1123), [#9](https://github.com/PanAeon/vscode-dhall-lsp-server/pull/9))
-- Code completion ([gif](./images/completion.png); [#1190](https://github.com/dhall-lang/dhall-haskell/pull/1190))
+- Clickable import statements ([gif](../images/follow-imports.png); [#1121](https://github.com/dhall-lang/dhall-haskell/pull/1121))
+- Freezing imports ([gif](../images/freezing-imports.png); [#1123](https://github.com/dhall-lang/dhall-haskell/pull/1123), [#9](https://github.com/PanAeon/vscode-dhall-lsp-server/pull/9))
+- Code completion ([gif](../images/completion.png); [#1190](https://github.com/dhall-lang/dhall-haskell/pull/1190))
 
 Due to the rapid pace of the project I was able to take some time to work outside the originally intended scope, and contribute directly to [*dhall-haskell*](https://github.com/dhall-lang/dhall-haskell/tree/master/dhall) proper (i.e. the `dhall` executable).
 - I implemented ‘semi-semantic’ caching of imports ([#1113](https://github.com/dhall-lang/dhall-haskell/pull/1113), [#1128](https://github.com/dhall-lang/dhall-haskell/pull/1128) and [#1154](https://github.com/dhall-lang/dhall-haskell/pull/1154)).
