@@ -6,7 +6,7 @@ Error highlighting and code completion are among the features programmers nowada
 
 The project was successful – you can now use VSCode/[ium](https://vscodium.com/) to enjoy the full Dhall experience with all its bells and whistles! Note that there is no reason for us not supporting other editors, other than no one has written the necessary glue code yet (feel free to contribute!).
 
-## Screencast (Showcasing Code Completion)
+## Screencast (Code Completion)
 
 ![Code completion](https://raw.githubusercontent.com/EggBaconAndSpam/eggbaconandspam.github.io/master/images/completion.png)
 
