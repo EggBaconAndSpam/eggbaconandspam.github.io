@@ -1,9 +1,9 @@
 # Seekable Parsers in Haskell
 
-In which we implement a combinator `seek :: Int -> Parser ()` that causes parsing to continue at a given offset. To be upfront about it: we will run our (megaparsec) parser on top of a `Reader` monad, which allows us to access the full input at any point.
+In which we implement a combinator `seek :: Int -> Parser ()` that causes parsing to continue at a given offset. Spoiler: we will run our (megaparsec) parser on top of a `Reader` monad, which allows us to access the full input at any point.
 
 ## Motivation
-Haskell is great at parsing, to the point where writing parsers in Haskell is actually rather fun! It's not always quite as straightforward as one would hope, though -- there are a few patterns that don't translate *directly* to your favourite parser monad (e.g. `Parsec` from *megaparsec*, `Parser` from *attoparsec*, etc.). One example of such a pattern is the use of *offsets* and random access inside files; while we can easily `skip` forward in the input stream (by parsing and discarding a number of tokens), neither of the popular parser libraries allows us to rewind the input or seek to an arbitrary position!
+Haskell is great at parsing, to the point where writing parsers in Haskell is actually rather fun! It's not always quite as straightforward as one would hope, though &ndash; there are a few patterns that don't translate *directly* to your favourite parser monad (e.g. `Parsec` from *megaparsec*, `Parser` from *attoparsec*, etc.). One example of such a pattern is the use of *offsets* and random access inside files; while we can easily `skip` forward in the input stream (by parsing and discarding a number of tokens), neither of the popular parser libraries allows us to rewind the input or seek to an arbitrary position!
 
 Take the following example: a given file starts with an "Image Vector Table" (IVT), which contains the offset to a "Device Configuration Data" (DCD) structure; we want to extract the latter. In other words, our parser needs to parse the IVT, then seek to `offset_dcd` and parse the DCD.
 
@@ -84,7 +84,7 @@ Now we can simply write our parsers in terms of the `SeekableParser` monad, and 
 ## Discussion
 
 - Carrying around the input in a Reader monad is not ideal for huge input files; in that case, a better approach would be to use `IO` as the underlying monad and read the content lazily.
-- Our solution relies on the parser library exposing a monad transformer interface -- this rules out *attoparsec* amongst others. Any ideas?
+- Our solution relies on the parser library exposing a monad transformer interface &ndash; this rules out *attoparsec* amongst others. Any ideas?
 - Other solutions?
 
 If you have anything to add or would like to leave a comment, you are invited to open an issue on the github repo for this [blog](https://github.com/EggBaconAndSpam/eggbaconandspam.github.io) or write me an email at [frederikramcke@mailbox.org](mailto:frederikramcke@mailbox.org).
